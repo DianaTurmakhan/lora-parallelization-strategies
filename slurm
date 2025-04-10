@@ -1,14 +1,29 @@
 #!/bin/bash
+#SBATCH --job-name=lora_train_job
+#SBATCH --output=logs/%x_%j.out     # %x = job-name, %j = job-id
+#SBATCH --error=logs/%x_%j.err
+#SBATCH --time=24:00:00  # 7 days (D-HH:MM:SS)
+#SBATCH --partition=ws-ia       # Partition to use
+#SBATCH --time=24:00:00
+#SBATCH --gres=gpu:1                  # Request 1 GPU
+#SBATCH --nodes=1                     # Number of nodes
+#SBATCH --ntasks=1                    # Number of tasks
+#SBATCH --cpus-per-task=4             # Number of CPUs per task
+#SBATCH --mem=40G         # Request 64 GB total memory
+#SBATCH --nodelist=ws-l4-003
 
-# This script runs your main.py training code and collects timing metrics.
+# Optional: Load your environment
+# module load cuda/11.8
+# source ~/miniconda3/etc/profile.d/conda.sh
+source /home/ainur.khamitova/miniconda3/bin/activate ml710
 
 # Optionally record the start time
 START_TIME=$(date +%s)
 
-# Call your Python script with the desired arguments.
-# Make sure to point it to the correct file containing your `main()` function.
+# Run your Python script
+#   --model_id "meta-llama/Llama-3.2-1B-Instruct" \
 python main.py \
-  --model_id "meta-llama/Llama-3.2-1B-Instruct" \
+  --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
   --dataset_name "databricks/databricks-dolly-15k" \
   --max_samples 500 \
   --num_train_epochs 10 \
@@ -46,7 +61,7 @@ echo "Total Time: ${HOURS}h ${MINUTES}m ${SECONDS}s"
 echo "============================================"
 echo ""
 
-# (Optional) Print GPU memory usage if nvidia-smi is available
+# GPU memory usage
 if command -v nvidia-smi &> /dev/null; then
   echo "GPU Memory Usage:"
   nvidia-smi --query-gpu=index,name,memory.used,memory.total --format=csv

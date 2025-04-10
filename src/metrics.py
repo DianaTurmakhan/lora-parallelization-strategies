@@ -38,6 +38,7 @@ class MetricsCallback(TrainerCallback):
         # Initialize GPU tracking
         self.gpu_utils = []
         self.gpu_mems = []
+        self.step_table = wandb.Table(columns=["Step", "Elapsed Time"])
         
     def on_step_begin(self, args, state, control, **kwargs):
         """Record time at the beginning of a step"""
@@ -89,7 +90,7 @@ class MetricsCallback(TrainerCallback):
             self.useful_flops += useful_flops
         
         if state.global_step % self.log_interval == 0:
-            self._log_training_metrics(step_time, batch_size, loss if 'loss' in locals() else None)
+            self._log_training_metrics(self.step_table, step_time, state.global_step, batch_size, loss if 'loss' in locals() else None)
         
         self.last_step_time = step_end_time
     
@@ -106,11 +107,18 @@ class MetricsCallback(TrainerCallback):
             
             # Log parameter efficiency
             param_efficiency = (self.trainable_params / self.total_model_params) * 100 if self.total_model_params > 0 else 0
-            wandb.log({
-                "model/trainable_parameters": self.trainable_params,
-                "model/total_parameters": self.total_model_params,
-                "model/parameter_efficiency_pct": param_efficiency
-            })
+            # wandb.log({
+            #     "model/trainable_parameters": self.trainable_params,
+            #     "model/total_parameters": self.total_model_params,
+            #     "model/parameter_efficiency_pct": param_efficiency
+            # })
+
+            model_param_table = wandb.Table(columns=["Metric", "Value"])
+            model_param_table.add_data("model/trainable_parameters", self.trainable_params)
+            model_param_table.add_data("model/total_parameters", self.total_model_params)
+            model_param_table.add_data("model/parameter_efficiency_pct", param_efficiency)
+
+            wandb.log({"model_parameter_table": model_param_table})
             
             print(f"Model has {self.trainable_params:,} trainable parameters out of {self.total_model_params:,} total parameters")
             print(f"Parameter efficiency: {param_efficiency:.2f}%")
@@ -150,27 +158,33 @@ class MetricsCallback(TrainerCallback):
         
         # Log final metrics to wandb
         final_metrics = {
-            "final/total_training_time_seconds": total_training_time,
-            "final/total_training_time_formatted": str(datetime.timedelta(seconds=int(total_training_time))),
-            "final/avg_step_time_seconds": avg_step_time,
-            "final/throughput_samples_per_second": throughput,
-            "final/total_samples_processed": self.samples_processed,
-            "final/communication_overhead_pct": comm_overhead,
-            "final/gpu_utilization_avg_pct": avg_gpu_util,
-            "final/gpu_memory_usage_avg_pct": avg_gpu_mem,
-            "final/final_loss": self.loss_values[-1] if self.loss_values else None,
-            "final/goodput_pct": goodput
+            "total_training_time_seconds": total_training_time,
+            "total_training_time_formatted": str(datetime.timedelta(seconds=int(total_training_time))),
+            "avg_step_time_seconds": avg_step_time,
+            "throughput_samples_per_second": throughput,
+            "total_samples_processed": self.samples_processed,
+            "communication_overhead_pct": comm_overhead,
+            "gpu_utilization_avg_pct": avg_gpu_util,
+            "gpu_memory_usage_avg_pct": avg_gpu_mem,
+            "final_loss": self.loss_values[-1] if self.loss_values else None,
+            "goodput_pct": goodput
         }
         
         if convergence_rate is not None:
-            final_metrics["final/convergence_rate"] = convergence_rate
-            final_metrics["final/time_to_target_loss"] = self.time_to_target
+            final_metrics["convergence_rate"] = convergence_rate
+            final_metrics["time_to_target_loss"] = self.time_to_target
         
         if scaling_efficiency is not None:
-            final_metrics["final/scaling_efficiency"] = scaling_efficiency
+            final_metrics["scaling_efficiency"] = scaling_efficiency
         
-        wandb.log(final_metrics)
-        
+        # wandb.log(final_metrics)
+        final_metrics_table = wandb.Table(columns=["Metric", "Value"])
+        for key, value in final_metrics.items():
+            final_metrics_table.add_data(key, str(value))
+
+        wandb.log({"final_metrics_table": final_metrics_table})
+        wandb.log({"training_elapsed_time_table": self.step_table})
+       
         print("\n=== TRAINING METRICS SUMMARY ===")
         for key, value in final_metrics.items():
             if value is not None:
@@ -227,18 +241,21 @@ class MetricsCallback(TrainerCallback):
         except Exception as e:
             print(f"Error logging GPU metrics: {e}")
     
-    def _log_training_metrics(self, step_time, batch_size, loss):
+    def _log_training_metrics(self, elapsed_time_table, step_time, step,  batch_size, loss):
         """Log training metrics to wandb"""
         elapsed_time = time.time() - self.training_start_time
         
         metrics = {
             "training/step_time_seconds": step_time,
             "training/elapsed_time_seconds": elapsed_time,
-            "training/elapsed_time_formatted": str(datetime.timedelta(seconds=int(elapsed_time))),
             "training/samples_processed": self.samples_processed,
             "training/throughput_samples_per_second": batch_size / step_time,
         }
-        
+
+
+    
+        elapsed_time_table.add_data(step, str(datetime.timedelta(seconds=int(elapsed_time))))
+                
         if loss is not None:
             metrics["training/loss"] = loss
         

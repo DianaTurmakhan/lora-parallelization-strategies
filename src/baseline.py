@@ -157,7 +157,11 @@ def train_single_gpu(args):
     # Calculate training time
     total_train_time = train_end - train_start
     print(f"\nTotal training time: {total_train_time:.2f} seconds")
-    wandb.log({"final/total_wall_time": total_train_time})
+    # Also log as a single-row table
+    wall_time_table = wandb.Table(columns=["Metric", "Value"])
+    wall_time_table.add_data("final/total_wall_time", total_train_time)
+
+    wandb.log({"wall_time_table": wall_time_table})
     
     # Log metrics
     print("\nTraining completed.")
