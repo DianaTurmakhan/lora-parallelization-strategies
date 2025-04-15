@@ -23,8 +23,6 @@ def parse_args():
                         help='Batch size per GPU for training.')
     parser.add_argument('--per_device_eval_batch_size', type=int, default=4,
                         help='Batch size per GPU for evaluation.')
-    parser.add_argument('--device_count', type=int, default=1,
-                        help='Number of GPUs to use for training.')
     parser.add_argument('--eval_steps', type=int, default=50,
                         help='Perform evaluation every X steps.')
     parser.add_argument('--logging_steps', type=int, default=10,

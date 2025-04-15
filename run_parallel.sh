@@ -77,7 +77,7 @@ COMMON_ARGS=(
   --lora_alpha 16
   --lora_dropout 0.1
   --output_dir results/baseline
-  --wandb_project lora-parallelization
+  --wandb_project main
   --wandb_name baseline_single_gpu
   --target_loss 0.5
   --metrics_log_interval 10

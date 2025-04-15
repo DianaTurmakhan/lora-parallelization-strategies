@@ -44,7 +44,7 @@ python main.py \
   --wandb_name "baseline_single_gpu" \
   --target_loss 0.5 \
   --metrics_log_interval 10 \
-  --wandb_entity "ml710_project"
+  --wandb_entity "ml710_project"\
 
 
 # Optionally record the end time

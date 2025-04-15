@@ -9,6 +9,11 @@ from trl import SFTTrainer, SFTConfig
 from src.metrics import MetricsCallback
 from src.data_utils import load_and_prepare_dataset
 from transformers import AutoModelForCausalLM
+def verify_pipeline_topology(engine):
+    topology = engine.mpu.get_pipe_parallel_topology()
+    print(f"Pipeline stages      : {topology.get_dim('pipe')}")
+    print(f"Tensor parallel size : {topology.get_dim('model')}")
+    print(f"Data parallel size   : {topology.get_dim('data')}")
 
 def train_pipeline_parallel(args):
     """Pipeline parallel LoRA fine-tuning using Accelerate + DeepSpeed."""
@@ -16,6 +21,7 @@ def train_pipeline_parallel(args):
 
 
     torch.manual_seed(args.seed)
+
 
     run_name = args.wandb_name or f"pp_lora_r{args.lora_r}_bs{args.per_device_train_batch_size}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
@@ -70,7 +76,6 @@ def train_pipeline_parallel(args):
         max_steps=-1,
         seed=args.seed,
         overwrite_output_dir=True,
-        deepspeed=ds_config_path  # <==== Enable DeepSpeed
     )
 
     peft_config = LoraConfig(

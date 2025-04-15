@@ -1,4 +1,5 @@
 /wandb/
 /logs/
 /results/
-output/
+/output/
+/megatron-deepspeed-install.sh
