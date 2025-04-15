@@ -61,10 +61,9 @@ ds_args="--deepspeed --deepspeed_config $DS_CONFIG"
 COMMON_ARGS=(
   --model_id meta-llama/Llama-3.2-1B-Instruct
   --dataset_name databricks/databricks-dolly-15k
-  --max_samples 2000
+  --max_samples 4000
   --num_train_epochs 10
   --learning_rate 2e-5
-  --device_count $PP
   --per_device_train_batch_size 4
   --gradient_accumulation_steps 4
   --fp16
