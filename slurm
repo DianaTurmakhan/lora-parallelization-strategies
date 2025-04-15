@@ -10,7 +10,7 @@
 #SBATCH --ntasks=1                    # Number of tasks
 #SBATCH --cpus-per-task=4             # Number of CPUs per task
 #SBATCH --mem=40G         # Request 64 GB total memory
-#SBATCH --nodelist=ws-l4-003
+#SBATCH --nodelist=ws-l4-009
 
 # Optional: Load your environment
 # module load cuda/11.8
@@ -25,7 +25,7 @@ START_TIME=$(date +%s)
 python main.py \
   --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
   --dataset_name "databricks/databricks-dolly-15k" \
-  --max_samples 500 \
+  --max_samples 2000 \
   --num_train_epochs 10 \
   --learning_rate 2e-5 \
   --per_device_train_batch_size 4 \
