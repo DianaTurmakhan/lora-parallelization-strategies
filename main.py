@@ -3,6 +3,8 @@
 import os
 import argparse
 from src.baseline import train_single_gpu
+from src.pipeline import train_pipeline_parallel
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="LoRA parallelization strategies for LLM fine-tuning")
@@ -21,6 +23,8 @@ def parse_args():
                         help='Batch size per GPU for training.')
     parser.add_argument('--per_device_eval_batch_size', type=int, default=4,
                         help='Batch size per GPU for evaluation.')
+    parser.add_argument('--device_count', type=int, default=1,
+                        help='Number of GPUs to use for training.')
     parser.add_argument('--eval_steps', type=int, default=50,
                         help='Perform evaluation every X steps.')
     parser.add_argument('--logging_steps', type=int, default=10,
@@ -57,8 +61,11 @@ def parse_args():
     
     # Parallelization strategy
     parser.add_argument('--parallelization_strategy', type=str, default="single_gpu",
-                        choices=["single_gpu", "data_parallel", "ddp", "fsdp", "deepspeed"],
+                        choices=["single_gpu", "data_parallel", "ddp", "fsdp", "deepspeed", "pipeline"],
                         help='Parallelization strategy to use')
+    parser.add_argument("--local_rank", type=int, default=0)
+    parser.add_argument("--deepspeed", action="store_true")
+    parser.add_argument("--deepspeed_config", type=str)
     
     # Metrics tracking args
     parser.add_argument('--target_loss', type=float, default=None,
@@ -102,6 +109,10 @@ def main():
         # Uncomment when implemented
         # metrics = train_deepspeed(args)
         print(f"\nDeepSpeed training complete!")
+    elif args.parallelization_strategy == "pipeline":
+        # Uncomment when implemented
+        metrics = train_pipeline_parallel(args)
+        print(f"\nPipeline Parallel training complete!")
     else:
         raise ValueError(f"Unknown parallelization strategy: {args.parallelization_strategy}")
     

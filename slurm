@@ -25,7 +25,7 @@ START_TIME=$(date +%s)
 python main.py \
   --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
   --dataset_name "databricks/databricks-dolly-15k" \
-  --max_samples 2000 \
+  --max_samples 4000 \
   --num_train_epochs 10 \
   --learning_rate 2e-5 \
   --per_device_train_batch_size 4 \
@@ -40,11 +40,12 @@ python main.py \
   --lora_alpha 16 \
   --lora_dropout 0.1 \
   --output_dir "results/baseline" \
-  --wandb_project "lora-parallelization" \
+  --wandb_project "main" \
   --wandb_name "baseline_single_gpu" \
   --target_loss 0.5 \
   --metrics_log_interval 10 \
   --wandb_entity "ml710_project"
+
 
 # Optionally record the end time
 END_TIME=$(date +%s)

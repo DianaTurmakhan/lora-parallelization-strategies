@@ -1,3 +1,4 @@
-/wandb
-/logs
-/results
+/wandb/
+/logs/
+/results/
+output/
