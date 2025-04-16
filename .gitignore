@@ -3,3 +3,4 @@
 /results/
 /output/
 /megatron-deepspeed-install.sh
+/src/__pycache__/
