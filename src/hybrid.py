@@ -10,13 +10,13 @@ from src.metrics import MetricsCallback
 from src.data_utils import load_and_prepare_dataset
 from transformers import AutoModelForCausalLM
 
-def verify_pipeline_topology(engine):
+def verify_hybrid_topology(engine):
     topology = engine.mpu.get_pipe_parallel_topology()
     print(f"Pipeline stages      : {topology.get_dim('pipe')}")
     print(f"Tensor parallel size : {topology.get_dim('model')}")
     print(f"Data parallel size   : {topology.get_dim('data')}")
 
-def train_pipeline_parallel(args):
+def train_hybrid_parallel(args):
     """Pipeline parallel LoRA fine-tuning using Accelerate + DeepSpeed."""
 
     torch.manual_seed(args.seed)

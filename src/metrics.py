@@ -58,10 +58,11 @@ class MetricsCallback(TrainerCallback):
                     
                   
         # Calculate batch size
-        batch_size = args.per_device_train_batch_size * args.gradient_accumulation_steps 
-        if torch.cuda.is_available():
-            batch_size *= torch.cuda.device_count()
-
+        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        print(world_size)
+        batch_size = args.per_device_train_batch_size * args.gradient_accumulation_steps * world_size
+        # if torch.cuda.is_available():
+        #     batch_size *= torch.cuda.device_count()
         
         self.samples_processed += batch_size
         # Log GPU utilization at step end

@@ -1,6 +1,7 @@
-/wandb/
-/logs/
-/results/
-/output/
-/megatron-deepspeed-install.sh
-/src/__pycache__/
+wandb/
+logs/
+results/
+output/
+megatron-deepspeed-install.sh
+src/__pycache__/
+__pycache__/

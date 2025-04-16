@@ -4,6 +4,7 @@ import os
 import argparse
 from src.baseline import train_single_gpu
 from src.pipeline import train_pipeline_parallel
+from src.hybrid import train_hybrid_parallel
 
 
 def parse_args():
