@@ -4,8 +4,8 @@ set -ex
 # ------------ Editable Variables ------------
 
 workdir=/home/beknur.kalmakhanbet/Documents/ML710
-master_node=ws-l4-004
-worker_node=ws-l4-020
+master_node=ws-l4-007
+worker_node=ws-l4-011
 
 TP=1
 PP=2

@@ -59,7 +59,7 @@ class MetricsCallback(TrainerCallback):
                   
         # Calculate batch size
         world_size = int(os.environ.get("WORLD_SIZE", 1))
-        print(world_size)
+        # print(world_size)
         batch_size = args.per_device_train_batch_size * args.gradient_accumulation_steps * world_size
         # if torch.cuda.is_available():
         #     batch_size *= torch.cuda.device_count()
