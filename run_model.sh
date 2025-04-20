@@ -1,65 +1,48 @@
 #!/bin/bash
 set -ex
-
 # ------------ Editable Variables ------------
-
 workdir=/home/diana.turmakhan/lora-parallelization-strategies
-master_node=ws-l4-005
-worker_node=ws-l4-007
+master_node=ws-l6-017
+worker_node=ws-l6-013
 
-TP=1
-PP=2
-GLOBAL_BATCH=32
-MICRO_BATCH=2
-ZERO_STAGE=2
 
+TP=2
+ZERO_STAGE=0
 # ------------ Paths ------------
 BASE_PATH=$workdir
-DS_CONFIG=$BASE_PATH/configs/ds_config_hybrid.json
+DS_CONFIG=$BASE_PATH/configs/ds_config_model.json
 HOST_FILE=$BASE_PATH/hostfile
-OUTPUT_DIR=$BASE_PATH/output/lora_hybrid_run
-
+OUTPUT_DIR=$BASE_PATH/output/lora_model_parallel_run
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 mkdir -p $OUTPUT_DIR
-
 # ------------ Host File ------------
-cat <<EOT >$HOST_FILE
-${master_node} slots=1
-${worker_node} slots=1
+cat <<EOT > $HOST_FILE
+${master_node} slots=2
+${worker_node} slots=2
 EOT
 
+
 # ------------ DeepSpeed Config ------------
-cat <<EOT >$DS_CONFIG
+cat <<EOT > $DS_CONFIG
 {
-  "train_batch_size": "auto",
-  "train_micro_batch_size_per_gpu": "auto",
-  "gradient_accumulation_steps": "auto",
-  "zero_optimization": {
-    "stage": $ZERO_STAGE,
-    "offload_optimizer": {
-      "device": "cpu",
-      "pin_memory": true
+    "train_batch_size": "auto",
+    "train_micro_batch_size_per_gpu": "auto",
+    "gradient_accumulation_steps": "auto",
+    "zero_optimization": {
+      "stage": $ZERO_STAGE 
     },
-    "offload_param": {
-      "device": "cpu",
-      "pin_memory": true
-    }
-  },
-  "fp16": {
-    "enabled": true
-  },
-  "pipeline": {
-    "enabled": true,
-    "stages": $PP
-  },
-  "data_parallel": {
-    "enabled": true
-  },
-  "activation_checkpointing": {
-    "partition_activations": true,
-    "contiguous_memory_optimization": true
-  },
-  "wall_clock_breakdown": true
+    "fp16": {
+      "enabled": true
+    },
+    "tensor_parallel": {
+      "enabled": true,
+      "size": $TP
+    },
+    "activation_checkpointing": {
+      "partition_activations": true,
+      "contiguous_memory_optimization": true
+    },
+    "wall_clock_breakdown": true
 }
 EOT
 
@@ -71,7 +54,7 @@ ds_args="--deepspeed --deepspeed_config $DS_CONFIG"
 COMMON_ARGS=(
   --model_id meta-llama/Meta-Llama-3-8B-Instruct
   --dataset_name databricks/databricks-dolly-15k
-  --max_samples 4000
+  --max_samples 8000
   --num_train_epochs 10
   --learning_rate 2e-5
   --per_device_train_batch_size 4
@@ -87,11 +70,11 @@ COMMON_ARGS=(
   --lora_dropout 0.1
   --output_dir results/baseline
   --wandb_project main
-  --wandb_name hybrid_8B_4k
+  --wandb_name model_parallel
   --target_loss 0.5
   --metrics_log_interval 10
   --wandb_entity ml710_project
-  --parallelization_strategy hybrid
+  --parallelization_strategy pipeline
 )
 
 # ------------ Determine Node Rank ------------

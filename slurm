@@ -15,7 +15,7 @@
 # Optional: Load your environment
 # module load cuda/11.8
 # source ~/miniconda3/etc/profile.d/conda.sh
-source /home/ainur.khamitova/miniconda3/bin/activate ml710
+source /home/diana.turmakhan/miniconda3/bin/activate ml
 
 # Optionally record the start time
 START_TIME=$(date +%s)
@@ -28,7 +28,7 @@ python main.py \
   --max_samples 4000 \
   --num_train_epochs 10 \
   --learning_rate 2e-5 \
-  --per_device_train_batch_size 4 \
+  --per_device_train_batch_size 8 \
   --gradient_accumulation_steps 4 \
   --fp16 \
   --do_eval \
@@ -41,7 +41,7 @@ python main.py \
   --lora_dropout 0.1 \
   --output_dir "results/baseline" \
   --wandb_project "main" \
-  --wandb_name "baseline_single_gpu" \
+  --wandb_name "baseline_single_gpu-8B" \
   --target_loss 0.5 \
   --metrics_log_interval 10 \
   --wandb_entity "ml710_project"\

@@ -1,15 +1,12 @@
-# main.py
-
 import os
 import argparse
 from src.baseline import train_single_gpu
 from src.pipeline import train_pipeline_parallel
 from src.hybrid import train_hybrid_parallel
-
+from src.model import train_model_parallel  
 
 def parse_args():
     parser = argparse.ArgumentParser(description="LoRA parallelization strategies for LLM fine-tuning")
-
     parser.add_argument('--output_dir', type=str, default='results/baseline',
                         help='Path to save the model and checkpoints.')
     parser.add_argument('--num_train_epochs', type=int, default=3,
@@ -60,7 +57,7 @@ def parse_args():
     
     # Parallelization strategy
     parser.add_argument('--parallelization_strategy', type=str, default="single_gpu",
-                        choices=["single_gpu", "data_parallel", "ddp", "fsdp", "deepspeed", "pipeline"],
+                        choices=["single_gpu", "data_parallel", "ddp", "fsdp", "deepspeed", "pipeline", "hybrid", "model"],
                         help='Parallelization strategy to use')
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--deepspeed", action="store_true")
@@ -81,7 +78,6 @@ def parse_args():
                         help='Wandb run name')
     parser.add_argument('--wandb_entity', type=str, default=None,
                         help='Wandb entity name')
-
     args = parser.parse_args()
     return args
 
@@ -109,9 +105,14 @@ def main():
         # metrics = train_deepspeed(args)
         print(f"\nDeepSpeed training complete!")
     elif args.parallelization_strategy == "pipeline":
-        # Uncomment when implemented
         metrics = train_pipeline_parallel(args)
         print(f"\nPipeline Parallel training complete!")
+    elif args.parallelization_strategy == "hybrid":
+        metrics = train_hybrid_parallel(args)
+        print(f"\nHybrid Parallel training complete!")
+    elif args.parallelization_strategy == "model":
+        metrics = train_model_parallel(args)
+        print(f"\nModel Parallel training complete!")
     else:
         raise ValueError(f"Unknown parallelization strategy: {args.parallelization_strategy}")
     

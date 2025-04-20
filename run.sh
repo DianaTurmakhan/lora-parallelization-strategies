@@ -8,12 +8,12 @@ START_TIME=$(date +%s)
 # Call your Python script with the desired arguments.
 # Make sure to point it to the correct file containing your `main()` function.
 python main.py \
-  --model_id "meta-llama/Llama-3.2-1B-Instruct" \
+  --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
   --dataset_name "databricks/databricks-dolly-15k" \
-  --max_samples 500 \
+  --max_samples 4000 \
   --num_train_epochs 10 \
   --learning_rate 2e-5 \
-  --per_device_train_batch_size 4 \
+  --per_device_train_batch_size 8 \
   --gradient_accumulation_steps 4 \
   --fp16 \
   --do_eval \
@@ -25,12 +25,11 @@ python main.py \
   --lora_alpha 16 \
   --lora_dropout 0.1 \
   --output_dir "results/baseline" \
-  --wandb_project "lora-parallelization" \
-  --wandb_name "baseline_single_gpu" \
+  --wandb_project "main" \
+  --wandb_name "baseline_single_gpu-8B" \
   --target_loss 0.5 \
   --metrics_log_interval 10 \
   --wandb_entity "ml710_project"\
-  --parallelization_strategy pipeline
 
 # Optionally record the end time
 END_TIME=$(date +%s)

@@ -3,9 +3,9 @@ set -ex
 
 # ------------ Editable Variables ------------
 
-workdir=/home/ainur.khamitova/Desktop/ML710
-master_node=ws-l4-018
-worker_node=ws-l4-020
+workdir=/home/diana.turmakhan
+master_node=ws-l6-017
+worker_node=ws-l6-013
 
 TP=1
 PP=2
@@ -61,7 +61,7 @@ ds_args="--deepspeed --deepspeed_config $DS_CONFIG"
 COMMON_ARGS=(
   --model_id meta-llama/Llama-3.2-1B-Instruct
   --dataset_name databricks/databricks-dolly-15k
-  --max_samples 4000
+  --max_samples 8000
   --num_train_epochs 10
   --learning_rate 2e-5
   --per_device_train_batch_size 4
@@ -77,7 +77,7 @@ COMMON_ARGS=(
   --lora_dropout 0.1
   --output_dir results/baseline
   --wandb_project main
-  --wandb_name baseline_single_gpu
+  --wandb_name parallel
   --target_loss 0.5
   --metrics_log_interval 10
   --wandb_entity ml710_project
