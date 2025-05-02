@@ -44,4 +44,3 @@ env OMP_NUM_THREADS=1 python train.py --strategy pipeline_parallel --stages 2
 # Hybrid Parallelism
 env OMP_NUM_THREADS=1 python train.py --strategy hybrid_parallel --nodes 2 --gpus_per_node 1
 
-Weights & Biases: https://wandb.ai/ml710_project/main/table?nw=nwuserdianaturmakhan
