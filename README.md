@@ -8,7 +8,6 @@ A comprehensive study comparing various parallelization strategies—Data Parall
 - **Model Parallelism** (tensor parallelism) via DeepSpeed for sharding model parameters.
 - **Pipeline Parallelism** with micro-batch pipelining across GPUs.
 - **Hybrid Parallelism** combining pipeline and data parallelism.
-- Automated collection of key evaluation metrics.
 
 ## Evaluation Metrics
 - **Throughput**: Samples or tokens processed per second (including overhead).
@@ -20,10 +19,11 @@ A comprehensive study comparing various parallelization strategies—Data Parall
 - **GPU Utilization**: Compute capacity usage percentage.
 
 <p align="center">
-  <img src="lora-parallelization-strategies/lora-parallelization-strategies/gpu.png" width="200" alt="Overview" />
-  <img src="lora-parallelization-strategies/lora-parallelization-strategies/mem.png" width="200" alt="Comparison" />
-  <img src="lora-parallelization-strategies/lora-parallelization-strategies/thr.png" width="200" alt="Utilization" />
+  <img src="gpu.png" width="200" alt="GPU Utilization" />
+  <img src="mem.png" width="200" alt="Memory Usage" />
+  <img src="thr.png" width="200" alt="Throughput" />
 </p>
+
 
 
 ## Experimental Results Summary
