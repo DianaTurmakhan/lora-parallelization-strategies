@@ -18,12 +18,9 @@ A comprehensive study comparing various parallelization strategies—Data Parall
 - **GPU Memory Usage**: Memory footprint during training/inference.
 - **GPU Utilization**: Compute capacity usage percentage.
 
-<p align="center">
-  <img src="./lora-parallelization-strategies/gpu.png" width="200" alt="GPU Utilization" />
-  <img src="./lora-parallelization-strategies/mem.png" width="200" alt="Memory Usage" />
-  <img src="./lora-parallelization-strategies/thr.png" width="200" alt="Throughput" />
-</p>
-
+| GPU Utilization | Memory Usage | Throughput |
+|:---------------:|:------------:|:----------:|
+| ![GPU](./lora-parallelization-strategies/gpu.png) | ![Mem](./lora-parallelization-strategies/mem.png) | ![Thr](./lora-parallelization-strategies/thr.png) |
 
 
 
