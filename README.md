@@ -1,4 +1,4 @@
-# ML710: Parallelization Strategies for Large Language Model Training
+# Parallelization strategies for LoRA fine-tuning on LlaMA
 
 ## Description
 A comprehensive study comparing various parallelization strategies—Data Parallelism, Model (Tensor) Parallelism, Pipeline Parallelism, and Hybrid Parallelism—using PyTorch and DeepSpeed on a 1B-parameter model. This project evaluates each approach based on training throughput, GPU memory usage, utilization, and overall training time.
@@ -19,6 +19,13 @@ A comprehensive study comparing various parallelization strategies—Data Parall
 - **GPU Memory Usage**: Memory footprint during training/inference.
 - **GPU Utilization**: Compute capacity usage percentage.
 
+<p align="center">
+  <img src="lora-parallelization-strategies/lora-parallelization-strategies/gpu.png" width="200" alt="Overview" />
+  <img src="lora-parallelization-strategies/lora-parallelization-strategies/mem.png" width="200" alt="Comparison" />
+  <img src="lora-parallelization-strategies/lora-parallelization-strategies/thr.png" width="200" alt="Utilization" />
+</p>
+
+
 ## Experimental Results Summary
 | Strategy                     | Time Reduction | Throughput Increase | Memory Reduction | 
 |------------------------------|---------------:|--------------------:|-----------------:|
@@ -38,3 +45,5 @@ env OMP_NUM_THREADS=1 python train.py --strategy pipeline_parallel --stages 2
 
 # Hybrid Parallelism
 env OMP_NUM_THREADS=1 python train.py --strategy hybrid_parallel --nodes 2 --gpus_per_node 1
+
+Weights & Biases: https://wandb.ai/ml710_project/main/table?nw=nwuserdianaturmakhan
