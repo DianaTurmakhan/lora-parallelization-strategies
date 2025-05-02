@@ -19,10 +19,11 @@ A comprehensive study comparing various parallelization strategies—Data Parall
 - **GPU Utilization**: Compute capacity usage percentage.
 
 <p align="center">
-  <img src="gpu.png" width="200" alt="GPU Utilization" />
-  <img src="mem.png" width="200" alt="Memory Usage" />
-  <img src="thr.png" width="200" alt="Throughput" />
+  <img src="./lora-parallelization-strategies/gpu.png" width="200" alt="GPU Utilization" />
+  <img src="./lora-parallelization-strategies/mem.png" width="200" alt="Memory Usage" />
+  <img src="./lora-parallelization-strategies/thr.png" width="200" alt="Throughput" />
 </p>
+
 
 
 
