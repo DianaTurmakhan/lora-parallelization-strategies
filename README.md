@@ -1,11 +1,11 @@
 # Parallelization strategies for LoRA fine-tuning on LlaMA
 
 ## Description
-A comprehensive research implementing various parallelization strategies—Data Parallelism, Model (Tensor) Parallelism, Pipeline Parallelism, and Hybrid Parallelism—using PyTorch and DeepSpeed on meta-llama/Meta-Llama-3-8B-Instruct. This project evaluates each approach based on training throughput, GPU memory usage, utilization, and overall training time.
+A comprehensive research implementing various parallelization strategies—Data Parallelism, Model (Tensor) Parallelism, Pipeline Parallelism, and Hybrid Parallelism— on meta-llama/Meta-Llama-3-8B-Instruct. This project evaluates each approach based on training throughput, GPU memory usage, utilization, and overall training time.
 
 ## Features
 - **Data Parallelism** using PyTorch DDP for gradient synchronization.
-- **Model Parallelism** (tensor parallelism) via DeepSpeed for sharding model parameters.
+- **Model Parallelism** (tensor parallelism) for sharding model parameters.
 - **Pipeline Parallelism** with micro-batch pipelining across GPUs.
 - **Hybrid Parallelism** combining pipeline and data parallelism.
 
