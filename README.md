@@ -20,7 +20,7 @@ A comprehensive research implementing various parallelization strategies—Data 
 
 | GPU Utilization | Memory Usage | Throughput |
 |:---------------:|:------------:|:----------:|
-| ![GPU](./lora-parallelization-strategies/gpu.png) | ![Mem](./lora-parallelization-strategies/mem.png) | ![Thr](./lora-parallelization-strategies/thr.png) |
+| ![GPU](./images/gpu.png) | ![Mem](./images/mem.png) | ![Thr](./images/thr.png) |
 
 
 
