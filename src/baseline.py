@@ -16,10 +16,8 @@ from transformers import AutoModelForCausalLM
 def train_single_gpu(args):
     """Baseline single-GPU training implementation for LoRA fine-tuning."""
     
-    # Set random seed
     torch.manual_seed(args.seed)
     
-    # Generate run name for wandb
     run_name = args.wandb_name
     if run_name is None:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -101,7 +99,6 @@ def train_single_gpu(args):
         overwrite_output_dir=True
     )
     
-    # Define LoRA config
     peft_config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
@@ -111,13 +108,11 @@ def train_single_gpu(args):
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
     )
     
-    # Create metrics callback
     metrics_callback = MetricsCallback(
         log_interval=args.metrics_log_interval,
         target_loss=args.target_loss
     )
     
-    # Set baseline throughput if provided
     if args.baseline_throughput is not None:
         metrics_callback.set_baseline_throughput(args.baseline_throughput)
 
@@ -130,7 +125,6 @@ def train_single_gpu(args):
     )
     
     print("\nCreating SFT Trainer...")
-    # Initialize the trainer
     trainer = SFTTrainer(
         model=model,
         # model_init_kwargs=model_kwargs,
@@ -145,20 +139,16 @@ def train_single_gpu(args):
         dataset_kwargs={"add_special_tokens": True, "append_concat_token": False}
     )
     
-    # Add metrics callback
     trainer.add_callback(metrics_callback)
     
-    # Train the model
     print("\nStarting training...")
     train_start = time.time()
     train_result = trainer.train()
     train_end = time.time()
     
-    # Calculate training time
     total_train_time = train_end - train_start
     print(f"\nTotal training time: {total_train_time:.2f} seconds")
 
-    # Log metrics
     print("\nTraining completed.")
     metrics = train_result.metrics
     metrics["train_samples"] = len(train_dataset)
@@ -169,12 +159,10 @@ def train_single_gpu(args):
     throughput = len(train_dataset) / total_train_time
     print(f"Training throughput: {throughput:.2f} samples/second")
     
-    # Save the model
     print(f"Saving model to {output_dir}")
     trainer.save_state()
     trainer.save_model(output_dir)
     
-    # Create a summary of key metrics
     summary_metrics = {
         "wall_time": total_train_time,
         "training_throughput": throughput,
@@ -189,12 +177,10 @@ def train_single_gpu(args):
         "parallelization": "single_gpu"
     }
     
-    # Save summary metrics to file
     os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "summary_metrics.json"), "w") as f:
         json.dump(summary_metrics, f, indent=2)
     
-    # Finish wandb run
     wandb.finish()
     
     return summary_metrics

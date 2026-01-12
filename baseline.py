@@ -37,20 +37,16 @@ class MetricsCallback(TrainerCallback):
         self.loss_values = []
         self.reached_target_loss = False
         self.time_to_target = None
-        # Track useful FLOPS vs total FLOPS for goodput calculation
         self.total_flops = 0
         self.useful_flops = 0
-        # Communication overhead tracking
         self.comm_times = []
         self.compute_times = []
-        # Initialize GPU tracking
         self.gpu_utils = []
         self.gpu_mems = []
         
     def on_step_begin(self, args, state, control, **kwargs):
         """Record time at the beginning of a step"""
         self.step_begin_time = time.time()
-        # Log GPU utilization at step begin
         self._log_gpu_metrics()
         
     def on_step_end(self, args, state, control, **kwargs):
@@ -65,13 +61,11 @@ class MetricsCallback(TrainerCallback):
                     loss = log['loss']
                     self.loss_values.append(loss)
                     
-                    # Check if reached target loss
                     if self.target_loss is not None and loss <= self.target_loss and not self.reached_target_loss:
                         self.reached_target_loss = True
                         self.time_to_target = step_end_time - self.training_start_time
                     break
         
-        # Calculate batch size
         batch_size = args.per_device_train_batch_size * args.gradient_accumulation_steps
         if torch.cuda.device_count() > 0:
             batch_size *= torch.cuda.device_count()
@@ -106,13 +100,11 @@ class MetricsCallback(TrainerCallback):
         self.training_start_time = time.time()
         self.last_step_time = self.training_start_time
         
-        # Record model parameter counts if available
         if 'model' in kwargs:
             model = kwargs['model']
             self.trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
             self.total_model_params = sum(p.numel() for p in model.parameters())
             
-            # Log parameter efficiency
             param_efficiency = (self.trainable_params / self.total_model_params) * 100 if self.total_model_params > 0 else 0
             wandb.log({
                 "model/trainable_parameters": self.trainable_params,
@@ -156,7 +148,6 @@ class MetricsCallback(TrainerCallback):
         avg_gpu_util = np.mean(self.gpu_utils) if self.gpu_utils else 0
         avg_gpu_mem = np.mean(self.gpu_mems) if self.gpu_mems else 0
         
-        # Log final metrics to wandb
         final_metrics = {
             "final/total_training_time_seconds": total_training_time,
             "final/total_training_time_formatted": str(datetime.timedelta(seconds=int(total_training_time))),
@@ -222,13 +213,11 @@ class MetricsCallback(TrainerCallback):
                             gpu_util_values.append(gpus[i].load * 100)
                             gpu_mem_values.append(gpus[i].memoryUtil * 100)
                 else:
-                    # Fall back to GPUtil if NVML is not initialized
                     gpus = GPUtil.getGPUs()
                     if i < len(gpus):
                         gpu_util_values.append(gpus[i].load * 100)
                         gpu_mem_values.append(gpus[i].memoryUtil * 100)
             
-            # Store values for averaging later
             self.gpu_utils.append(np.mean(gpu_util_values) if gpu_util_values else 0)
             self.gpu_mems.append(np.mean(gpu_mem_values) if gpu_mem_values else 0)
             
@@ -250,14 +239,14 @@ class MetricsCallback(TrainerCallback):
         if loss is not None:
             metrics["training/loss"] = loss
         
-        # Add GPU metrics
+        # GPU metrics
         if torch.cuda.is_available():
             metrics["hardware/gpu_utilization_pct"] = self.gpu_utils[-1] if self.gpu_utils else 0
             metrics["hardware/gpu_memory_used_pct"] = self.gpu_mems[-1] if self.gpu_mems else 0
             metrics["hardware/gpu_memory_allocated_bytes"] = torch.cuda.memory_allocated()
             metrics["hardware/gpu_memory_reserved_bytes"] = torch.cuda.memory_reserved()
         
-        # Add CPU metrics
+        # CPU metrics
         metrics["hardware/cpu_utilization_pct"] = psutil.cpu_percent()
         metrics["hardware/ram_used_pct"] = psutil.virtual_memory().percent
         
@@ -431,14 +420,12 @@ def main():
         compute_dtype = torch.float32
         print("Using float32 precision")
 
-    # Define model kwargs
     model_kwargs = dict(
         torch_dtype=compute_dtype,
         use_cache=False, 
         device_map="auto",
     )
     
-    # Create a unique output directory based on parameters
     model_name = args.model_id.split("/")[-1]
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = f"{args.output_dir}/{model_name}_lora_r{args.lora_r}_ep{args.num_train_epochs}_lr{args.learning_rate}_bs{args.per_device_train_batch_size}_{timestamp}"
@@ -473,7 +460,6 @@ def main():
     )
     print(f"Training arguments configured")
     
-    # Define PEFT (LoRA) configuration
     peft_config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
@@ -484,7 +470,6 @@ def main():
     )
     print(f"LoRA config: rank={args.lora_r}, alpha={args.lora_alpha}, dropout={args.lora_dropout}")
     
-    # Print system info for benchmarking
     if torch.cuda.is_available():
         print("\nGPU Information:")
         print(f"CUDA Version: {torch.version.cuda}")
@@ -496,18 +481,15 @@ def main():
     else:
         print("\nNo GPU detected, training on CPU")
     
-    # Create metrics callback
     metrics_callback = MetricsCallback(
         log_interval=args.metrics_log_interval,
         target_loss=args.target_loss
     )
     
-    # Set baseline throughput if provided
     if args.baseline_throughput is not None:
         metrics_callback.set_baseline_throughput(args.baseline_throughput)
     
     print("\nCreating SFT Trainer...")
-    # Initialize the trainer
     trainer = SFTTrainer(
         model=args.model_id,
         model_init_kwargs=model_kwargs,
@@ -515,7 +497,7 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset if args.do_eval else None,
         tokenizer=tokenizer,
-        packing=False,  # Uncomment if needed
+        packing=False, 
         peft_config=peft_config,
         max_seq_length=max_length,
         dataset_text_field="messages",
@@ -530,12 +512,10 @@ def main():
     train_result = trainer.train()
     train_end = time.time()
     
-    # Calculate and log total training time
     total_train_time = train_end - train_start
     print(f"\nTotal training time: {total_train_time:.2f} seconds")
     wandb.log({"final/total_wall_time": total_train_time})
     
-    # Log training metrics
     print("\nTraining completed.")
     metrics = train_result.metrics
     metrics["train_samples"] = len(train_dataset)

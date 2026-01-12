@@ -1,12 +1,8 @@
 #!/bin/bash
 
-# This script runs your main.py training code and collects timing metrics.
-
-# Optionally record the start time
 START_TIME=$(date +%s)
 
-# Call your Python script with the desired arguments.
-# Make sure to point it to the correct file containing your `main()` function.
+
 python main.py \
   --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
   --dataset_name "databricks/databricks-dolly-15k" \
@@ -31,22 +27,8 @@ python main.py \
   --metrics_log_interval 10 \
   --wandb_entity "ml710_project"\
 
-# Optionally record the end time
 END_TIME=$(date +%s)
-TOTAL_TIME=$((END_TIME - START_TIME))
-HOURS=$((TOTAL_TIME / 3600))
-MINUTES=$(((TOTAL_TIME % 3600) / 60))
-SECONDS=$((TOTAL_TIME % 60))
 
-echo ""
-echo "============================================"
-echo "Training Complete!"
-echo "============================================"
-echo "Total Time: ${HOURS}h ${MINUTES}m ${SECONDS}s"
-echo "============================================"
-echo ""
-
-# (Optional) Print GPU memory usage if nvidia-smi is available
 if command -v nvidia-smi &> /dev/null; then
   echo "GPU Memory Usage:"
   nvidia-smi --query-gpu=index,name,memory.used,memory.total --format=csv

@@ -84,26 +84,9 @@ def parse_args():
 def main():
     args = parse_args()
     
-    # Select the appropriate training function based on the parallelization strategy
     if args.parallelization_strategy == "single_gpu":
         metrics = train_single_gpu(args)
         print(f"\nBaseline training complete!")
-    elif args.parallelization_strategy == "data_parallel":
-        # Uncomment when implemented
-        # metrics = train_data_parallel(args)
-        print(f"\nData Parallel training complete!")
-    elif args.parallelization_strategy == "ddp":
-        # Uncomment when implemented
-        # metrics = train_ddp(args)
-        print(f"\nDDP training complete!")
-    elif args.parallelization_strategy == "fsdp":
-        # Uncomment when implemented
-        # metrics = train_fsdp(args)
-        print(f"\nFSDP training complete!")
-    elif args.parallelization_strategy == "deepspeed":
-        # Uncomment when implemented
-        # metrics = train_deepspeed(args)
-        print(f"\nDeepSpeed training complete!")
     elif args.parallelization_strategy == "pipeline":
         metrics = train_pipeline_parallel(args)
         print(f"\nPipeline Parallel training complete!")
@@ -116,10 +99,6 @@ def main():
     else:
         raise ValueError(f"Unknown parallelization strategy: {args.parallelization_strategy}")
     
-    # Print summary
-    print("\n" + "="*50)
-    print(f"Summary for strategy: {args.parallelization_strategy}")
-    print("="*50)
     print(f"Training throughput: {metrics.get('training_throughput', 'N/A'):.2f} samples/second")
     print(f"Total wall time: {metrics.get('wall_time', 'N/A'):.2f} seconds")
     print(f"Final loss: {metrics.get('final_loss', 'N/A')}")

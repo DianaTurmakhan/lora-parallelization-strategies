@@ -12,7 +12,6 @@ from transformers import AutoTokenizer, TrainerCallback
 
 
 def format_dolly_dataset(example):
-    """Format Databricks Dolly dataset into a chat format."""
     system_message = "You are a helpful AI assistant that provides detailed and informative responses."
     
     user_message = example["instruction"]
@@ -49,7 +48,6 @@ def load_and_prepare_dataset(args):
         desc="Formatting dataset",
     )
     
-    # Print a sample for verification
     print(f"\nSample from the formatted dataset:")
     sample_idx = random.randint(0, len(formatted_dataset) - 1)
     print(f"Sample {sample_idx}:")

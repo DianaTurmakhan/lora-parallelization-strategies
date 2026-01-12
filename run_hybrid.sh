@@ -1,7 +1,6 @@
 #!/bin/bash
 set -ex
 
-# ------------ Editable Variables ------------
 
 workdir=/home/diana.turmakhan/lora-parallelization-strategies
 master_node=ws-l4-005

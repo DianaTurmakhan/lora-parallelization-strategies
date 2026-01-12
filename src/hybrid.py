@@ -93,7 +93,6 @@ def train_hybrid_parallel(args):
     if args.baseline_throughput:
         metrics_callback.set_baseline_throughput(args.baseline_throughput)
 
-    # NOTE: Do not call accelerator.prepare() directly if using `SFTTrainer`
     print("\nCreating SFTTrainer with DeepSpeed pipeline parallelism...")
     trainer = SFTTrainer(
         model=model,

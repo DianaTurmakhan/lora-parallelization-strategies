@@ -12,16 +12,12 @@
 #SBATCH --mem=40G         # Request 64 GB total memory
 #SBATCH --nodelist=ws-l4-009
 
-# Optional: Load your environment
-# module load cuda/11.8
-# source ~/miniconda3/etc/profile.d/conda.sh
+
 source /home/diana.turmakhan/miniconda3/bin/activate ml
 
-# Optionally record the start time
 START_TIME=$(date +%s)
 
-# Run your Python script
-#   --model_id "meta-llama/Llama-3.2-1B-Instruct" \
+
 python main.py \
   --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
   --dataset_name "databricks/databricks-dolly-15k" \
@@ -47,22 +43,10 @@ python main.py \
   --wandb_entity "ml710_project"\
 
 
-# Optionally record the end time
 END_TIME=$(date +%s)
 TOTAL_TIME=$((END_TIME - START_TIME))
-HOURS=$((TOTAL_TIME / 3600))
-MINUTES=$(((TOTAL_TIME % 3600) / 60))
-SECONDS=$((TOTAL_TIME % 60))
 
-echo ""
-echo "============================================"
-echo "Training Complete!"
-echo "============================================"
-echo "Total Time: ${HOURS}h ${MINUTES}m ${SECONDS}s"
-echo "============================================"
-echo ""
 
-# GPU memory usage
 if command -v nvidia-smi &> /dev/null; then
   echo "GPU Memory Usage:"
   nvidia-smi --query-gpu=index,name,memory.used,memory.total --format=csv
