@@ -4,10 +4,16 @@ import datetime
 import torch
 import wandb
 import json
-from peft import LoraConfig
-from trl import SFTTrainer, SFTConfig
-from src.metrics import MetricsCallback
+from trl import SFTTrainer
 from src.data_utils import load_and_prepare_dataset
+from src.train_utils import (
+    get_compute_dtype,
+    create_output_dir,
+    create_training_config,
+    create_lora_config,
+    create_metrics_callback,
+    generate_summary_metrics
+)
 from transformers import AutoModelForCausalLM
 
 def verify_tensor_topology(engine):
@@ -16,8 +22,6 @@ def verify_tensor_topology(engine):
     print(f"Data parallel size   : {engine.mpu.get_data_parallel_world_size()}")
 
 def train_model_parallel(args):
-    """Tensor parallel LoRA fine-tuning using Accelerate + DeepSpeed."""
-
     torch.manual_seed(args.seed)
 
     run_name = args.wandb_name or f"tp_lora_r{args.lora_r}_bs{args.per_device_train_batch_size}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -31,68 +35,20 @@ def train_model_parallel(args):
 
     train_dataset, eval_dataset, tokenizer, max_length = load_and_prepare_dataset(args)
 
-    compute_dtype = torch.bfloat16 if args.bf16 else torch.float16 if args.fp16 else torch.float32
+    compute_dtype = get_compute_dtype(args)
+    output_dir = create_output_dir(args)
+
+    print(f"Using DeepSpeed config at: {args.deepspeed_config}")
+
+    training_args = create_training_config(args, output_dir)
+    peft_config = create_lora_config(args)
+    metrics_callback = create_metrics_callback(args)
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_id,
         torch_dtype=compute_dtype
     )
 
-    # === Output directory ===
-    model_name = args.model_id.split("/")[-1]
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = f"{args.output_dir}/{model_name}_dstp_lora_r{args.lora_r}_ep{args.num_train_epochs}_lr{args.learning_rate}_bs{args.per_device_train_batch_size}_{timestamp}"
-    os.makedirs(output_dir, exist_ok=True)
-
-    # === DeepSpeed config path ===
-    ds_config_path = args.deepspeed_config  # Must point to a JSON file with tensor parallelism setup
-    print(f"Using DeepSpeed config at: {ds_config_path}")
-
-    training_args = SFTConfig(
-        output_dir=output_dir,
-        report_to="wandb",
-        eval_steps=args.eval_steps if args.do_eval else None,
-        dataset_text_field="text",
-        num_train_epochs=args.num_train_epochs,
-        learning_rate=args.learning_rate,
-        per_device_train_batch_size=args.per_device_train_batch_size,
-        per_device_eval_batch_size=args.per_device_eval_batch_size,
-        logging_steps=args.logging_steps,
-        save_strategy=args.save_strategy,
-        save_steps=args.save_steps,
-        save_total_limit=2,
-        fp16=args.fp16,
-        bf16=args.bf16,
-        do_eval=args.do_eval,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        gradient_checkpointing=args.gradient_checkpointing,
-        gradient_checkpointing_kwargs={"use_reentrant": False},
-        log_level="info",
-        logging_strategy="steps",
-        lr_scheduler_type="cosine",
-        max_steps=-1,
-        seed=args.seed,
-        overwrite_output_dir=True,
-    )
-
-    peft_config = LoraConfig(
-        r=args.lora_r,
-        lora_alpha=args.lora_alpha,
-        lora_dropout=args.lora_dropout,
-        bias="none",
-        task_type="CAUSAL_LM",
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    )
-
-    metrics_callback = MetricsCallback(
-        log_interval=args.metrics_log_interval,
-        target_loss=args.target_loss
-    )
-
-    if args.baseline_throughput:
-        metrics_callback.set_baseline_throughput(args.baseline_throughput)
-
-    # NOTE: Do not call accelerator.prepare() directly if using `SFTTrainer`
     print("\nCreating SFTTrainer with DeepSpeed tensor parallelism...")
     trainer = SFTTrainer(
         model=model,
@@ -125,19 +81,9 @@ def train_model_parallel(args):
     trainer.save_state()
     trainer.save_model(output_dir)
 
-    summary_metrics = {
-        "wall_time": total_train_time,
-        "training_throughput": throughput,
-        "final_loss": metrics.get("train_loss", None),
-        "samples_processed": len(train_dataset),
-        "batch_size": args.per_device_train_batch_size,
-        "gradient_accumulation_steps": args.gradient_accumulation_steps,
-        "effective_batch_size": args.per_device_train_batch_size * args.gradient_accumulation_steps * max(1, torch.cuda.device_count()),
-        "num_gpus": torch.cuda.device_count() if torch.cuda.is_available() else 0,
-        "lora_rank": args.lora_r,
-        "model": args.model_id,
-        "parallelization": "accelerate+deepspeed_tensor"
-    }
+    summary_metrics = generate_summary_metrics(
+        train_result, train_dataset, total_train_time, args, "accelerate+deepspeed_tensor"
+    )
 
     with open(os.path.join(output_dir, "summary_metrics.json"), "w") as f:
         json.dump(summary_metrics, f, indent=2)

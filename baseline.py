@@ -25,7 +25,6 @@ except:
     print("NVML initialization failed. Some GPU metrics may not be available.")
 
 
-# Custom callback for tracking detailed metrics
 class MetricsCallback(TrainerCallback):
     def __init__(self, log_interval=10, target_loss=None):
         self.log_interval = log_interval
@@ -43,14 +42,12 @@ class MetricsCallback(TrainerCallback):
         self.compute_times = []
         self.gpu_utils = []
         self.gpu_mems = []
-        
+
     def on_step_begin(self, args, state, control, **kwargs):
-        """Record time at the beginning of a step"""
         self.step_begin_time = time.time()
         self._log_gpu_metrics()
-        
+
     def on_step_end(self, args, state, control, **kwargs):
-        """Record metrics at the end of a step"""
         step_end_time = time.time()
         step_time = step_end_time - self.step_begin_time
         self.step_times.append(step_time)
@@ -73,20 +70,19 @@ class MetricsCallback(TrainerCallback):
         self.samples_processed += batch_size
         
         if torch.cuda.device_count() > 1:
-            comm_time = step_time * 0.1  
+            comm_time = step_time * 0.1
             compute_time = step_time - comm_time
         else:
             comm_time = 0
             compute_time = step_time
-            
+
         self.comm_times.append(comm_time)
         self.compute_times.append(compute_time)
-        
-        # Estimate FLOPs
+
         if hasattr(self, 'total_model_params'):
-            flops_per_step = 2 * self.total_model_params * batch_size * 12  
+            flops_per_step = 2 * self.total_model_params * batch_size * 12
             self.total_flops += flops_per_step
-            
+
             useful_flops = flops_per_step * (compute_time / step_time)
             self.useful_flops += useful_flops
         
@@ -96,55 +92,45 @@ class MetricsCallback(TrainerCallback):
         self.last_step_time = step_end_time
     
     def on_train_begin(self, args, state, control, **kwargs):
-        """Record the start of training and set up initial metrics"""
         self.training_start_time = time.time()
         self.last_step_time = self.training_start_time
-        
+
         if 'model' in kwargs:
             model = kwargs['model']
             self.trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
             self.total_model_params = sum(p.numel() for p in model.parameters())
-            
+
             param_efficiency = (self.trainable_params / self.total_model_params) * 100 if self.total_model_params > 0 else 0
             wandb.log({
                 "model/trainable_parameters": self.trainable_params,
                 "model/total_parameters": self.total_model_params,
                 "model/parameter_efficiency_pct": param_efficiency
             })
-            
+
             print(f"Model has {self.trainable_params:,} trainable parameters out of {self.total_model_params:,} total parameters")
             print(f"Parameter efficiency: {param_efficiency:.2f}%")
-    
+
     def on_train_end(self, args, state, control, **kwargs):
-        """Record final metrics at the end of training"""
         end_time = time.time()
         total_training_time = end_time - self.training_start_time
-        
-        # Calculate final metrics
+
         avg_step_time = np.mean(self.step_times) if self.step_times else 0
         throughput = self.samples_processed / total_training_time if total_training_time > 0 else 0
-        
-        # Calculate convergence metrics
+
         convergence_rate = None
         if self.target_loss is not None:
             if self.reached_target_loss:
                 convergence_rate = self.samples_processed / self.time_to_target
             else:
                 print("Warning: Target loss was not reached during training")
-        
-        # Calculate scaling efficiency (if we have a baseline)
+
         scaling_efficiency = None
         if hasattr(self, 'baseline_throughput') and self.baseline_throughput > 0:
             num_gpus = max(1, torch.cuda.device_count())
             scaling_efficiency = (throughput / self.baseline_throughput) / num_gpus
-        
-        # Calculate communication overhead
+
         comm_overhead = sum(self.comm_times) / sum(self.step_times) * 100 if self.step_times else 0
-        
-        # Calculate goodput (useful FLOPS / total FLOPS)
         goodput = (self.useful_flops / self.total_flops) * 100 if self.total_flops > 0 else 0
-        
-        # Calculate GPU utilization stats
         avg_gpu_util = np.mean(self.gpu_utils) if self.gpu_utils else 0
         avg_gpu_mem = np.mean(self.gpu_mems) if self.gpu_mems else 0
         
@@ -185,11 +171,9 @@ class MetricsCallback(TrainerCallback):
         print(f"Metrics saved to {metrics_file}")
     
     def set_baseline_throughput(self, throughput):
-        """Set baseline throughput for calculating scaling efficiency"""
         self.baseline_throughput = throughput
-    
+
     def _log_gpu_metrics(self):
-        """Log GPU utilization and memory usage"""
         if not torch.cuda.is_available():
             return
         
@@ -225,7 +209,6 @@ class MetricsCallback(TrainerCallback):
             print(f"Error logging GPU metrics: {e}")
     
     def _log_training_metrics(self, step_time, batch_size, loss):
-        """Log training metrics to wandb"""
         elapsed_time = time.time() - self.training_start_time
         
         metrics = {
@@ -238,19 +221,15 @@ class MetricsCallback(TrainerCallback):
         
         if loss is not None:
             metrics["training/loss"] = loss
-        
-        # GPU metrics
+
         if torch.cuda.is_available():
             metrics["hardware/gpu_utilization_pct"] = self.gpu_utils[-1] if self.gpu_utils else 0
             metrics["hardware/gpu_memory_used_pct"] = self.gpu_mems[-1] if self.gpu_mems else 0
             metrics["hardware/gpu_memory_allocated_bytes"] = torch.cuda.memory_allocated()
             metrics["hardware/gpu_memory_reserved_bytes"] = torch.cuda.memory_reserved()
-        
-        # CPU metrics
+
         metrics["hardware/cpu_utilization_pct"] = psutil.cpu_percent()
         metrics["hardware/ram_used_pct"] = psutil.virtual_memory().percent
-        
-        # Communication vs computation
         metrics["hardware/communication_time_seconds"] = self.comm_times[-1] if self.comm_times else 0
         metrics["hardware/computation_time_seconds"] = self.compute_times[-1] if self.compute_times else 0
         metrics["hardware/communication_overhead_pct"] = (self.comm_times[-1] / step_time) * 100 if step_time > 0 else 0
@@ -330,7 +309,6 @@ def parse_args():
 
 
 def format_dolly_dataset(example):
-    """Format Databricks Dolly dataset into a chat format."""
     system_message = "You are a helpful AI assistant that provides detailed and informative responses."
     
     user_message = example["instruction"]
@@ -358,8 +336,7 @@ def main():
     if run_name is None:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         run_name = f"lora_r{args.lora_r}_bs{args.per_device_train_batch_size}_{timestamp}"
-    
-    # Initialize wandb
+
     wandb.init(
         project=args.wandb_project,
         entity=args.wandb_entity,
@@ -422,16 +399,15 @@ def main():
 
     model_kwargs = dict(
         torch_dtype=compute_dtype,
-        use_cache=False, 
+        use_cache=False,
         device_map="auto",
     )
-    
+
     model_name = args.model_id.split("/")[-1]
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = f"{args.output_dir}/{model_name}_lora_r{args.lora_r}_ep{args.num_train_epochs}_lr{args.learning_rate}_bs{args.per_device_train_batch_size}_{timestamp}"
     print(f"Output directory: {output_dir}")
-    
-    # Define training arguments
+
     training_args = SFTConfig(
         output_dir=output_dir,
         report_to="wandb",

@@ -10,7 +10,6 @@ from transformers import TrainerCallback
 from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates, NVMLError
 import GPUtil
 
-# Initialize NVML for GPU metrics
 try:
     nvmlInit()
     nvml_initialized = True
@@ -35,15 +34,12 @@ class MetricsCallback(TrainerCallback):
         self.gpu_mems = []
 
         self.step_table = wandb.Table(columns=["Step", "Elapsed Time"])
-        
+
     def on_step_begin(self, args, state, control, **kwargs):
-        """Record time at the beginning of a step"""
         self.step_begin_time = time.time()
-        # Log GPU utilization at step begin
         self._log_gpu_metrics()
-        
+
     def on_step_end(self, args, state, control, **kwargs):
-        """Record metrics at the end of a step"""
         step_end_time = time.time()
         step_time = step_end_time - self.step_begin_time
         self.step_times.append(step_time)
@@ -55,18 +51,11 @@ class MetricsCallback(TrainerCallback):
                     loss = log['loss']
                     self.loss_values.append(loss)
                 break
-                    
-                  
-        # Calculate batch size
+
         world_size = int(os.environ.get("WORLD_SIZE", 1))
-        # print(world_size)
         batch_size = args.per_device_train_batch_size * args.gradient_accumulation_steps * world_size
-        # if torch.cuda.is_available():
-        #     batch_size *= torch.cuda.device_count()
-        
+
         self.samples_processed += batch_size
-        # Log GPU utilization at step end
-        
         self.compute_times.append(step_time)
 
         if state.global_step % self.log_interval == 0:
@@ -75,17 +64,14 @@ class MetricsCallback(TrainerCallback):
         self.last_step_time = step_end_time
 
     def on_train_begin(self, args, state, control, **kwargs):
-        """Record the start of training and set up initial metrics"""
         self.training_start_time = time.time()
         self.last_step_time = self.training_start_time
 
-        # Record model parameter counts if available
         if 'model' in kwargs:
             model = kwargs['model']
             self.trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
             self.total_model_params = sum(p.numel() for p in model.parameters())
-            
-            # Log parameter efficiency
+
             param_efficiency = (self.trainable_params / self.total_model_params) * 100 if self.total_model_params > 0 else 0
           
             model_param_table = wandb.Table(columns=["Metric", "Value"])
@@ -99,19 +85,15 @@ class MetricsCallback(TrainerCallback):
             print(f"Parameter efficiency: {param_efficiency:.2f}%")
     
     def on_train_end(self, args, state, control, **kwargs):
-        """Record final metrics at the end of training"""
         end_time = time.time()
         total_training_time = end_time - self.training_start_time
-        
-        # Calculate final metrics
+
         avg_step_time = np.mean(self.step_times) if self.step_times else 0
         throughput = self.samples_processed / total_training_time if total_training_time > 0 else 0
-    
-        # Calculate GPU utilization stats
+
         avg_gpu_util = np.mean(self.gpu_utils) if self.gpu_utils else 0
         avg_gpu_mem = np.mean(self.gpu_mems) if self.gpu_mems else 0
-        
-        # Log final metrics to wandb
+
         final_metrics = {
             "total_training_time_seconds": total_training_time,
             "total_training_time_formatted": str(datetime.timedelta(seconds=int(total_training_time))),
@@ -123,7 +105,6 @@ class MetricsCallback(TrainerCallback):
             "final_loss": self.loss_values[-1] if self.loss_values else None,
         }
 
-        # wandb.log(final_metrics)
         final_metrics_table = wandb.Table(columns=["Metric", "Value"])
         for key, value in final_metrics.items():
             final_metrics_table.add_data(key, str(value))
@@ -145,9 +126,7 @@ class MetricsCallback(TrainerCallback):
         
         print(f"Metrics saved to {metrics_file}")
     
-  
     def _log_gpu_metrics(self):
-        """Log GPU utilization and memory usage"""
         if not torch.cuda.is_available():
             return
         
@@ -171,37 +150,25 @@ class MetricsCallback(TrainerCallback):
                             gpu_util_values.append(gpus[i].load * 100)
                             gpu_mem_values.append(gpus[i].memoryUtil * 100)
                 else:
-                    # Fall back to GPUtil if NVML is not initialized
                     gpus = GPUtil.getGPUs()
                     if i < len(gpus):
                         gpu_util_values.append(gpus[i].load * 100)
                         gpu_mem_values.append(gpus[i].memoryUtil * 100)
-            
-            # Store values for averaging later
+
             self.gpu_utils.append(np.mean(gpu_util_values) if gpu_util_values else 0)
             self.gpu_mems.append(np.mean(gpu_mem_values) if gpu_mem_values else 0)
             
         except Exception as e:
             print(f"Error logging GPU metrics: {e}")
     
-    def _log_training_metrics(self, elapsed_time_table, step_time, step,  batch_size, loss):
-        """Log training metrics to wandb"""
+    def _log_training_metrics(self, elapsed_time_table, step_time, step, batch_size, loss):
         elapsed_time = time.time() - self.training_start_time
-        
 
-        # TROUGHPUT
         throughput = batch_size / step_time if step_time > 0 else 0
-
-        # STAT EFFICIENCY
         se = (np.abs(self.loss_values[-1] - self.loss_values[-2])) / batch_size if len(self.loss_values) > 1 else 0
-
-        # GOODPUT
         goodput = throughput * se
-
-        # Log GPU utilization at step end
         self.compute_times.append(step_time)
-        
-        
+
         metrics = {
             "training/step_time_seconds": step_time,
             "training/elapsed_time_seconds": elapsed_time,
@@ -213,22 +180,18 @@ class MetricsCallback(TrainerCallback):
 
     
         elapsed_time_table.add_data(step, str(datetime.timedelta(seconds=int(elapsed_time))))
-                
+
         if loss is not None:
             metrics["training/loss"] = loss
-        
-        # Add GPU metrics
+
         if torch.cuda.is_available():
             metrics["hardware/gpu_utilization_pct"] = self.gpu_utils[-1] if self.gpu_utils else 0
             metrics["hardware/gpu_memory_used_pct"] = self.gpu_mems[-1] if self.gpu_mems else 0
             metrics["hardware/gpu_memory_allocated_bytes"] = torch.cuda.memory_allocated()
             metrics["hardware/gpu_memory_reserved_bytes"] = torch.cuda.memory_reserved()
-        
-        # Add CPU metrics
+
         metrics["hardware/cpu_utilization_pct"] = psutil.cpu_percent()
         metrics["hardware/ram_used_pct"] = psutil.virtual_memory().percent
-        
-        # Communication vs computation
         metrics["hardware/computation_time_seconds"] = self.compute_times[-1] if self.compute_times else 0
       
         wandb.log(metrics)
